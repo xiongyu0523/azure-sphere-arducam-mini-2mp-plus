@@ -1,0 +1,4 @@
+# Ignore output directories
+/bin
+/obj
+/.vs
