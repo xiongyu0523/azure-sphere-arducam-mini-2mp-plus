@@ -13,16 +13,26 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\arducam_mini_2mp_plus_driver">
+      <UniqueIdentifier>{a9e659d8-f066-4e14-93fe-e47849848b4d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <UpToDateCheckInput Include="app_manifest.json" />
-  </ItemGroup>  
-  <ItemGroup>
-    <Image Include="Icon.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <ClCompile Include="arducam_mini_2mp_plus_driver\ArduCAM.c">
+      <Filter>Source Files\arducam_mini_2mp_plus_driver</Filter>
+    </ClCompile>
+    <ClCompile Include="arducam_mini_2mp_plus_driver\ll.c">
+      <Filter>Source Files\arducam_mini_2mp_plus_driver</Filter>
+    </ClCompile>
+    <ClCompile Include="arducam_mini_2mp_plus_driver\ov2640_regs.c">
+      <Filter>Source Files\arducam_mini_2mp_plus_driver</Filter>
+    </ClCompile>
+    <ClCompile Include="delay_ms.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

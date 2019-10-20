@@ -36,7 +36,15 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <TargetHardwareDirectory>.\Hardware\mt3620_rdb</TargetHardwareDirectory>
+    <TargetHardwareDefinition>mt3620_rdb.json</TargetHardwareDefinition>
+  </PropertyGroup>
   <ItemGroup>
+    <ClCompile Include="arducam_mini_2mp_plus_driver\ArduCAM.c" />
+    <ClCompile Include="arducam_mini_2mp_plus_driver\ll.c" />
+    <ClCompile Include="arducam_mini_2mp_plus_driver\ov2640_regs.c" />
+    <ClCompile Include="delay_ms.c" />
     <ClCompile Include="main.c" />
     <UpToDateCheckInput Include="app_manifest.json" />
   </ItemGroup>
@@ -45,6 +53,8 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalOptions>-Werror=implicit-function-declaration %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">_POSIX_C_SOURCE;%(PreprocessorDefinitions);AzureSphere_CA7</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">$(SysRootIncludePath);%(AdditionalIncludeDirectories);$(TargetHardwareDirectory)\inc;.\arducam_mini_2mp_plus_driver;.;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <LibraryDependencies>applibs;pthread;gcc_s;c</LibraryDependencies>

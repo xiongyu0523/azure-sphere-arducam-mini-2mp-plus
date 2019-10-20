@@ -1,43 +1,67 @@
-﻿#include <stdbool.h>
+﻿#include <stdlib.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
-#include <time.h>
 
 #include <applibs/log.h>
-#include <applibs/gpio.h>
 
-int main(void)
+#include "ArduCAM.h"
+#include "delay_ms.h"
+
+int main(int argc, char* argv[])
 {
-    // This minimal Azure Sphere app repeatedly toggles GPIO 9, which is the green channel of RGB
-    // LED 1 on the MT3620 RDB.
-    // If your device exposes different GPIOs, you might need to change this value. For example,
-    // to run the app on a Seeed mini-dev kit, change the GPIO from 9 to 7 in the call to
-    // GPIO_OpenAsOutput and in the app_manifest.json to blink its LED. Check with your hardware
-    // manufacturer to determine which GPIOs are available.
-    // Use this app to test that device and SDK installation succeeded that you can build,
-    // deploy, and debug an app with Visual Studio, and that you can deploy an app over the air,
-    // per the instructions here: https://docs.microsoft.com/azure-sphere/quickstarts/qs-overview
-    //
-    // It is NOT recommended to use this as a starting point for developing apps; instead use
-    // the extensible samples here: https://github.com/Azure/azure-sphere-samples
-    Log_Debug(
-        "\nVisit https://github.com/Azure/azure-sphere-samples for extensible samples to use as a "
-        "starting point for full applications.\n");
+	Log_Debug("Exmaple to capture a JPEG image from ArduCAM mini 2MP Plus and send to Azure Blob\r\n");
+	
+	// init hardware and probe camera
+	arducam_ll_init();
+	arducam_reset();
+	if (arducam_test() == 0) {
+		Log_Debug("ArduCAM mini 2MP Plus is found\r\n");
+	} else {
+		Log_Debug("ArduCAM mini 2MP Plus is not found\r\n");
+		return -1;
+	}
 
-    // Change this GPIO number and the number in app_manifest.json if required by your hardware.
-    int fd = GPIO_OpenAsOutput(9, GPIO_OutputMode_PushPull, GPIO_Value_High);
-    if (fd < 0) {
-        Log_Debug(
-            "Error opening GPIO: %s (%d). Check that app_manifest.json includes the GPIO used.\n",
-            strerror(errno), errno);
-        return -1;
-    }
+	// config Camera
+	arducam_set_format(JPEG);
+	arducam_InitCAM();
 
-    const struct timespec sleepTime = {1, 0};
-    while (true) {
-        GPIO_SetValue(fd, GPIO_Value_Low);
-        nanosleep(&sleepTime, NULL);
-        GPIO_SetValue(fd, GPIO_Value_High);
-        nanosleep(&sleepTime, NULL);
-    }
+	for (uint32_t i = 0; i <= 8; i++) {
+
+		// 0 = OV2640_160x120, 8 = OV2640_1600x1200
+		arducam_OV2640_set_JPEG_size(i);
+		delay_ms(1000);
+		arducam_clear_fifo_flag();
+		arducam_flush_fifo();
+
+		// Trigger a capture and wait for data ready in DRAM
+		arducam_start_capture();
+		while (!arducam_check_fifo_done());
+
+		uint32_t img_len = arducam_read_fifo_length();
+		if (img_len > MAX_FIFO_SIZE) {
+			Log_Debug("ERROR: FIFO overflow\r\n");
+			return -1;
+		}
+
+		Log_Debug("Captured imgSize = %d\r\n", img_len);
+
+		uint8_t* p_jpg_buffer = malloc(img_len);
+
+		arducam_CS_LOW();
+		arducam_set_fifo_burst();
+		arducam_read_fifo_burst(p_jpg_buffer, img_len);
+		arducam_CS_HIGH();
+
+		arducam_clear_fifo_flag();
+
+#if 0
+		for (uint32_t i = 0; i < img_len; i++) {
+			Log_Debug("0x%02X ", p_jpg_buffer[i]);
+		}
+		Log_Debug("\r\n\r\n\r\n\r\n");
+#endif
+
+		free(p_jpg_buffer);
+	}
 }
