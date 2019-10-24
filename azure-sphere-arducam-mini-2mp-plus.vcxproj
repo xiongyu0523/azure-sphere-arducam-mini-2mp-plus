@@ -57,7 +57,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">$(SysRootIncludePath);%(AdditionalIncludeDirectories);$(TargetHardwareDirectory)\inc;.\arducam_mini_2mp_plus_driver;.;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <LibraryDependencies>applibs;pthread;gcc_s;c</LibraryDependencies>
+      <LibraryDependencies>applibs;pthread;gcc_s;c;curl</LibraryDependencies>
       <AdditionalOptions>-Wl,--no-undefined -nodefaultlibs %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
