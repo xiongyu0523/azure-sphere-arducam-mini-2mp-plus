@@ -7,6 +7,7 @@
 #define OV2640_CHIPID_LOW 	0x0B
 
 extern const struct sensor_reg OV2640_QVGA[];
+extern const struct sensor_reg OV2640_QQVGA[];
 extern const struct sensor_reg OV2640_JPEG_INIT[];
 extern const struct sensor_reg OV2640_YUV422[];
 extern const struct sensor_reg OV2640_JPEG[];

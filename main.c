@@ -13,6 +13,42 @@
 #include "ArduCAM.h"
 #include "delay_ms.h"
 
+//#define CFG_MODE_JPEG
+#define CFG_MODE_BITMAP
+
+#if (defined(CFG_MODE_JPEG) && defined(CFG_MODE_BITMAP)) || (!defined(CFG_MODE_JPEG) && !defined(CFG_MODE_BITMAP))
+#error "define CFG_MODE_JPEG or CFG_MODE_BITMAP"
+#endif
+
+#if defined(CFG_MODE_BITMAP)
+#define BMPIMAGEOFFSET 66
+const uint8_t bmp_header[BMPIMAGEOFFSET] =
+{
+	0x42, 0x4D,					// MagicNumber = 'B', 'M'
+	0x42, 0x58, 0x02, 0x00,		// FileSize = 320x240x2 + 66
+	//0x42, 0x96, 0x00, 0x00,     // FileSize = 160x120x2 + 66
+	0x00, 0x00, 0x00, 0x00,		// Reserved
+	0x42, 0x00, 0x00, 0x00,		// Pixel Offset in memory = 66
+	0x28, 0x00, 0x00, 0x00,     // BitmapInfoHeaderSize = 40
+	0x40, 0x01, 0x00, 0x00,     // W = 320
+	//0xA0, 0x00, 0x00, 0x00,     // W = 320
+	0xF0, 0x00, 0x00, 0x00,     // H = 240
+	//0x78, 0x00, 0x00, 0x00,     // H = 240
+	0x01, 0x00,                 // Plane
+	0x10, 0x00,                 // 16bit RG
+	0x03, 0x00, 0x00, 0x00,     // Compression = BI_BITFIELDS(3)
+	0x00, 0x58, 0x02, 0x00,     // ImageSize = 320x240x2
+	//0x00, 0x96, 0x00, 0x00,     // ImageSize = 160x120x2
+	0x00, 0x00, 0x00, 0x00,     // XPelsPerMeter
+	0x00, 0x00, 0x00, 0x00,     // YPelsPerMeter
+	0x00, 0x00, 0x00, 0x00,     // biClrUsed
+	0x00, 0x00, 0x00, 0x00,     // biClrImportant
+	0x00, 0xF8, 0x00, 0x00,     // Red mask
+	0xE0, 0x07, 0x00, 0x00,     // Green mask
+	0x1F, 0x00, 0x00, 0x00      // Blue mask
+};
+#endif
+
 struct image_buffer {
 	uint8_t* p_data;
 	uint32_t size;
@@ -139,9 +175,16 @@ int main(int argc, char* argv[])
 	}
 
 	// config Camera
+
+#if defined(CFG_MODE_JPEG)
 	arducam_set_format(JPEG);
+#elif defined (CFG_MODE_BITMAP)
+	arducam_set_format(BMP);
+#endif
 	arducam_InitCAM();
-	arducam_OV2640_set_JPEG_size(OV2640_640x480);
+#if defined(CFG_MODE_JPEG)
+	arducam_OV2640_set_JPEG_size(OV2640_320x240);
+#endif
 	delay_ms(1000);
 	arducam_clear_fifo_flag();
 	arducam_flush_fifo();
@@ -156,6 +199,8 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	Log_Debug("len = %d\r\n", img_len);
+
 	uint8_t* p_imgBuffer = malloc(img_len);
 
 	arducam_CS_LOW();
@@ -165,20 +210,56 @@ int main(int argc, char* argv[])
 
 	arducam_clear_fifo_flag();
 
+#if defined(CFG_MODE_JPEG)
 	// OV2640 pad 0x00 bytes at the end of JPG image
 	while (p_imgBuffer[img_len - 1] != 0xD9) {
 		--img_len;
 	}
+#elif defined(CFG_MODE_BITMAP)
+	// OV2640 pad 8 bytes '0x00' at the end of raw RGB image
+	img_len -= 8;
+#endif
+
+	uint8_t *p_file;
+	uint32_t file_size;
+
+#if defined(CFG_MODE_JPEG)
+
+	p_file = p_imgBuffer;
+	file_size = img_len;
+
+#elif defined(CFG_MODE_BITMAP)
+
+	// https://docs.microsoft.com/en-us/previous-versions/dd183376(v=vs.85)
+
+	file_size = BMPIMAGEOFFSET + img_len;
+	p_file = calloc(file_size, 1);
+
+	memcpy(&p_file[0], &bmp_header[0], BMPIMAGEOFFSET);
+	
+	uint8_t midbuf = 0;
+	for (uint32_t i = 0; i < img_len; i += 2) {
+		midbuf             = p_imgBuffer[i];
+		p_imgBuffer[i]     = p_imgBuffer[i + 1];
+		p_imgBuffer[i + 1] = midbuf;
+	}
+
+	memcpy(&p_file[BMPIMAGEOFFSET], p_imgBuffer, img_len);
+
+	free(p_imgBuffer);
+
+#endif
 
 	bool isNetworkingReady = false;
 	while ((Networking_IsNetworkingReady(&isNetworkingReady) < 0) || !isNetworkingReady) {
 		Log_Debug("\nNot doing download because network is not up, try again\r\n");
 	}
 
-	UploadFileToAzureBlob(p_imgBuffer, img_len);
+	UploadFileToAzureBlob(p_file, file_size);
 
-	free(p_imgBuffer);
+	free(p_file);
 
 	Log_Debug("App Exit\r\n");
+
 	return 0;
 }
