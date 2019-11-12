@@ -13,22 +13,41 @@
 #include <applibs/gpio.h>
 #include <hw/mt3620_rdb.h>
 
+static int GpioFd;
+static int i2cFd;
+static int spiFd;
+
+#define MAX_SPI_TRANSFER_BYTES	4096
+
 #elif defined(AzureSphere_CM4)
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "SPIMaster.h"
+#include "I2CMaster.h"
+#include "GPIO.h"
+#include "Log_Debug.h"
+
+#define MT3620_RDB_HEADER2_ISU0_I2C		MT3620_UNIT_ISU0
+#define MT3620_RDB_HEADER4_ISU1_SPI		MT3620_UNIT_ISU1
+#define MT3620_RDB_HEADER4_PIN14_GPIO	4
+
+static SpiMaster* SpiHandler;
+static I2CMaster* I2cHandler;
+
+#define MAX_SPI_TRANSFER_BYTES	16
+
 #endif
 
 #include "ll.h"
 
-#if defined(AzureSphere_CA7)
-static int GpioFd;
-static int i2cFd;
-static int spiFd;
-#endif
-
 #define OV2640_I2C_ADDR			0x30
-#define MAX_SPI_TRANSFER_BYTES	4096
 
 int ll_gpio_init(void)
 {
+#if defined(AzureSphere_CA7)
+
 	GpioFd = GPIO_OpenAsOutput(MT3620_RDB_HEADER4_PIN14_GPIO, GPIO_OutputMode_PushPull, GPIO_Value_High);
 	if (GpioFd < 0) {
 		Log_Debug("ERROR: GPIO_OpenAsOutput: errno=%d (%s)\n", errno, strerror(errno));
@@ -36,16 +55,44 @@ int ll_gpio_init(void)
 	}
 
 	return 0;
+
+#elif defined(AzureSphere_CM4)
+
+	int32_t ret = GPIO_ConfigurePinForOutput(MT3620_RDB_HEADER4_PIN14_GPIO);
+	if (ret != ERROR_NONE) {
+		Log_Debug("ERROR: GPIO_ConfigurePinForOutput: %d\r\n", ret);
+		return -1;
+	}
+
+	return 0;
+
+#endif
 }
 
 void ll_gpio_cs_go_low(void)
 {
+#if defined(AzureSphere_CA7)
+
 	GPIO_SetValue(GpioFd, GPIO_Value_Low);
+
+#elif defined(AzureSphere_CM4)
+	
+	(void)GPIO_Write(MT3620_RDB_HEADER4_PIN14_GPIO, 0);
+
+#endif
 }
 
 void ll_gpio_cs_go_high(void)
 {
+#if defined(AzureSphere_CA7)
+
 	GPIO_SetValue(GpioFd, GPIO_Value_High);
+
+#elif defined(AzureSphere_CM4)
+
+	(void)GPIO_Write(MT3620_RDB_HEADER4_PIN14_GPIO, 1);
+
+#endif
 }
 
 int ll_i2c_init(void)
@@ -54,20 +101,20 @@ int ll_i2c_init(void)
 
     i2cFd = I2CMaster_Open(MT3620_RDB_HEADER2_ISU0_I2C);
 	if (i2cFd < 0) {
-		Log_Debug("ERROR: I2CMaster_Open: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: I2CMaster_Open: errno=%d (%s)\r\n", errno, strerror(errno));
 		return -1;
 	}
 
 	int ret = I2CMaster_SetBusSpeed(i2cFd, I2C_BUS_SPEED_STANDARD);
 	if (ret < 0) {
-		Log_Debug("ERROR: I2CMaster_SetBusSpeed: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: I2CMaster_SetBusSpeed: errno=%d (%s)\r\n", errno, strerror(errno));
 		close(i2cFd);
 		return -1;
 	}
 
 	ret = I2CMaster_SetTimeout(i2cFd, 100);
 	if (ret < 0) {
-		Log_Debug("ERROR: I2CMaster_SetTimeout: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: I2CMaster_SetTimeout: errno=%d (%s)\r\n", errno, strerror(errno));
 		close(i2cFd);
 		return -1;
 	}
@@ -75,6 +122,12 @@ int ll_i2c_init(void)
 	return 0;
 
 #elif defined(AzureSphere_CM4)
+
+	I2cHandler = I2CMaster_Open(MT3620_UNIT_ISU0);
+	I2CMaster_SetBusSpeed(I2cHandler, I2C_BUS_SPEED_STANDARD);
+
+	return 0;
+
 #endif
 }
 
@@ -84,17 +137,24 @@ int ll_i2c_tx(uint8_t* tx_data, uint32_t tx_len)
 
 	int ret = I2CMaster_Write(i2cFd, OV2640_I2C_ADDR, tx_data, tx_len);
 	if (ret < 0) {
-		Log_Debug("ERROR: I2CMaster_Write: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: I2CMaster_Write: errno=%d (%s)\r\n", errno, strerror(errno));
 		return -1;
-	}
-	else if (ret != tx_len) {
-		Log_Debug("ERROR: I2CMaster_Write transfer %d bytes, expect %d bytes\n", ret, tx_len);
+	} else if (ret != tx_len) {
+		Log_Debug("ERROR: I2CMaster_Write transfer %d bytes, expect %d bytes\r\n", ret, tx_len);
 		return -1;
 	}
 
 	return 0;
 
 #elif defined(AzureSphere_CM4)
+
+	int32_t ret = I2CMaster_WriteSync(I2cHandler, OV2640_I2C_ADDR, tx_data, tx_len);
+	if (ret != ERROR_NONE) {
+		Log_Debug("ERROR: I2CMaster_WriteSync: %d\r\n", ret);
+		return -1;
+	}
+
+	return 0;
 
 #endif
 }
@@ -105,16 +165,24 @@ int ll_i2c_tx_then_rx(uint8_t* tx_data, uint32_t tx_len, uint8_t* rx_data, uint3
 
 	int ret = I2CMaster_WriteThenRead(i2cFd, OV2640_I2C_ADDR, tx_data, tx_len, rx_data, rx_len);
 	if (ret < 0) {
-		Log_Debug("ERROR: I2CMaster_WriteThenRead: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: I2CMaster_WriteThenRead: errno=%d (%s)\r\n", errno, strerror(errno));
 		return -1;
 	} else if (ret != (tx_len + rx_len)) {
-		Log_Debug("ERROR: I2CMaster_WriteThenRead transfer %d bytes, expect %d bytes\n", ret, tx_len + rx_len);
+		Log_Debug("ERROR: I2CMaster_WriteThenRead transfer %d bytes, expect %d bytes\r\n", ret, tx_len + rx_len);
 		return -1;
 	}
 
 	return 0;
 
 #elif defined(AzureSphere_CM4)
+
+	int32_t ret = I2CMaster_WriteThenReadSync(I2cHandler, OV2640_I2C_ADDR, tx_data, tx_len, rx_data, rx_len);
+	if (ret != ERROR_NONE) {
+		Log_Debug("ERROR: I2CMaster_WriteThenReadSync: %d\r\n", ret);
+		return -1;
+	}
+
+	return 0;
 
 #endif
 }
@@ -126,27 +194,27 @@ int ll_spi_init(void)
     SPIMaster_Config config;
     int ret = SPIMaster_InitConfig(&config);
     if (ret < 0) {
-        Log_Debug("ERROR: SPIMaster_InitConfig: errno=%d (%s)\n", errno, strerror(errno));
+        Log_Debug("ERROR: SPIMaster_InitConfig: errno=%d (%s)\r\n", errno, strerror(errno));
         return -1;
     }
 
     config.csPolarity = SPI_ChipSelectPolarity_ActiveLow;
     spiFd = SPIMaster_Open(MT3620_RDB_HEADER4_ISU1_SPI, MT3620_SPI_CS_A, &config);
     if (spiFd < 0) {
-        Log_Debug("ERROR: SPIMaster_Open: errno=%d (%s)\n", errno, strerror(errno));
+        Log_Debug("ERROR: SPIMaster_Open: errno=%d (%s)\r\n", errno, strerror(errno));
         return -1;
     }
 
     int result = SPIMaster_SetBusSpeed(spiFd, 4000000);
     if (result < 0) {
-        Log_Debug("ERROR: SPIMaster_SetBusSpeed: errno=%d (%s)\n", errno, strerror(errno));
+        Log_Debug("ERROR: SPIMaster_SetBusSpeed: errno=%d (%s)\r\n", errno, strerror(errno));
         close(spiFd);
         return -1;
     }
 
     result = SPIMaster_SetMode(spiFd, SPI_Mode_0);
     if (result < 0) {
-        Log_Debug("ERROR: SPIMaster_SetMode: errno=%d (%s)\n", errno, strerror(errno));
+        Log_Debug("ERROR: SPIMaster_SetMode: errno=%d (%s)\r\n", errno, strerror(errno));
         close(spiFd);
         return -1;
     }
@@ -154,6 +222,13 @@ int ll_spi_init(void)
 	return 0;
 
 #elif defined(AzureSphere_CM4)
+
+	SpiHandler = SpiMaster_Open(MT3620_UNIT_ISU1);
+	SpiMaster_ConfigDMA(SpiHandler, false);
+	SpiMaster_Select(SpiHandler, CS_NONE);
+	SpiMaster_Configure(SpiHandler, false, false, 4000000);
+
+	return 0;
 
 #endif
 }
@@ -171,7 +246,7 @@ int ll_spi_tx(uint8_t *tx_data, uint32_t tx_len)
 
 	int ret = SPIMaster_InitTransfers(&transfers, 1);
 	if (ret < 0) {
-		Log_Debug("ERROR: SPIMaster_InitTransfers: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: SPIMaster_InitTransfers: errno=%d (%s)\r\n", errno, strerror(errno));
 		return -1;
 	}
 
@@ -181,16 +256,24 @@ int ll_spi_tx(uint8_t *tx_data, uint32_t tx_len)
 
 	ret = SPIMaster_TransferSequential(spiFd, &transfers, 1);
 	if (ret < 0) {
-		Log_Debug("ERROR: SPIMaster_TransferSequential: errno=%d (%s)\n", errno, strerror(errno));
+		Log_Debug("ERROR: SPIMaster_TransferSequential: errno=%d (%s)\r\n", errno, strerror(errno));
 		return -1;
 	} else if (ret != tx_len) {
-		Log_Debug("ERROR: SPIMaster_TransferSequential transfer %d bytes, expect %d bytes\n", ret, tx_len);
+		Log_Debug("ERROR: SPIMaster_TransferSequential transfer %d bytes, expect %d bytes\r\n", ret, tx_len);
 		return -1;
 	}
 
 	return 0;
 
 #elif defined(AzureSphere_CM4)
+
+	int32_t ret = SpiMaster_WriteSync(SpiHandler, tx_data, tx_len);
+	if (ret != ERROR_NONE) {
+		Log_Debug("ERROR: SpiMaster_WriteSync: %d\r\n", ret);
+		return -1;
+	}
+
+	return 0;
 
 #endif
 }
@@ -209,7 +292,7 @@ int ll_spi_rx(uint8_t *rx_data, uint32_t rx_len)
 	while (numOfXfer > 0) {
 		int ret = SPIMaster_InitTransfers(&transfer, 1);
 		if (ret < 0) {
-			Log_Debug("ERROR: SPIMaster_InitTransfers: errno=%d (%s)\n", errno, strerror(errno));
+			Log_Debug("ERROR: SPIMaster_InitTransfers: errno=%d (%s)\r\n", errno, strerror(errno));
 			return -1;
 		}
 
@@ -219,10 +302,10 @@ int ll_spi_rx(uint8_t *rx_data, uint32_t rx_len)
 
 		ret = SPIMaster_TransferSequential(spiFd, &transfer, 1);
 		if (ret < 0) {
-			Log_Debug("ERROR: SPIMaster_TransferSequential: errno=%d (%s)\n", errno, strerror(errno));
+			Log_Debug("ERROR: SPIMaster_TransferSequential: errno=%d (%s)\r\n", errno, strerror(errno));
 			return -1;
 		} else if (ret != transfer.length) {
-			Log_Debug("ERROR: SPIMaster_TransferSequential transfer %d bytes, expect %d bytes\n", ret, rx_len);
+			Log_Debug("ERROR: SPIMaster_TransferSequential transfer %d bytes, expect %d bytes\r\n", ret, rx_len);
 			return -1;
 		}
 
@@ -234,6 +317,34 @@ int ll_spi_rx(uint8_t *rx_data, uint32_t rx_len)
     return 0;
 
 #elif defined(AzureSphere_CM4)
+#if 0
+	int32_t ret = SpiMaster_ReadSync(SpiHandler, rx_data, rx_len);
+	if (ret != ERROR_NONE) {
+		Log_Debug("ERROR: SpiMaster_ReadSync: %d\r\n", ret);
+		return -1;
+	}
+
+	return 0;
+#endif
+	uint32_t numOfXfer = (rx_len % MAX_SPI_TRANSFER_BYTES == 0) ? (rx_len / MAX_SPI_TRANSFER_BYTES) : (rx_len / MAX_SPI_TRANSFER_BYTES + 1);
+
+	uint32_t offset = 0;
+	int32_t sizeleft = (int32_t)rx_len;
+
+	while (numOfXfer > 0) {
+
+		int32_t ret = SpiMaster_ReadSync(SpiHandler, rx_data + offset, sizeleft > MAX_SPI_TRANSFER_BYTES ? MAX_SPI_TRANSFER_BYTES : sizeleft);
+		if (ret != ERROR_NONE) {
+			Log_Debug("ERROR: SpiMaster_ReadSync: %d\r\n", ret);
+			return -1;
+		}
+
+		sizeleft -= MAX_SPI_TRANSFER_BYTES;
+		offset += MAX_SPI_TRANSFER_BYTES;
+		numOfXfer--;
+	};
+
+	return 0;
 
 #endif
 }
@@ -250,15 +361,23 @@ int ll_spi_tx_then_rx(uint8_t *tx_data, uint32_t tx_len, uint8_t *rx_data, uint3
     int ret;
     ret = SPIMaster_WriteThenRead(spiFd, (const uint8_t *)tx_data, tx_len, rx_data, rx_len);
     if (ret < 0) {
-        Log_Debug("ERROR: SPIMaster_WriteThenRead: errno=%d (%s)\n", errno, strerror(errno));
+        Log_Debug("ERROR: SPIMaster_WriteThenRead: errno=%d (%s)\r\n", errno, strerror(errno));
         return -1;
 	} else if (ret != (tx_len + rx_len)) {
-		Log_Debug("ERROR: SPIMaster_TransferSequential transfer %d bytes, expect %d bytes\n", ret, tx_len);
+		Log_Debug("ERROR: SPIMaster_TransferSequential transfer %d bytes, expect %d bytes\r\n", ret, tx_len);
 		return -1;
 	}
     return 0;
 
 #elif defined(AzureSphere_CM4)
+
+	int32_t ret = SpiMaster_WriteThenReadSync(SpiHandler, tx_data, tx_len, rx_data, rx_len);
+	if (ret != ERROR_NONE) {
+		Log_Debug("ERROR: SpiMaster_WriteThenReadSync: %d\r\n", ret);
+		return -1;
+	}
+
+	return 0;
 
 #endif
 }
