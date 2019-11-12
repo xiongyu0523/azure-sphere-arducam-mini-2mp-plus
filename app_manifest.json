@@ -6,9 +6,9 @@
   "CmdArgs": [],
   "Capabilities": {
     "AllowedConnections": [ "<your-stroage-account>.blob.core.windows.net" ],
-    "Gpio": [ "$MT3620_RDB_HEADER4_PIN14_GPIO" ],
-    "I2cMaster": [ "$MT3620_RDB_HEADER2_ISU0_I2C" ],
-    "SpiMaster": [ "$MT3620_RDB_HEADER4_ISU1_SPI" ]
+    "Gpio": [ "$ARDUCAM_CS" ],
+    "I2cMaster": [ "$ARDUCAM_I2C" ],
+    "SpiMaster": [ "$ARDUCAM_SPI" ]
   },
   "ApplicationType":"Default"
 }

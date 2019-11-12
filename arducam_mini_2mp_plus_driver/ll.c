@@ -11,7 +11,7 @@
 #include <applibs/i2c.h>
 #include <applibs/spi.h>
 #include <applibs/gpio.h>
-#include <hw/mt3620_rdb.h>
+#include <hw/sample_hardware.h>
 
 static int GpioFd;
 static int i2cFd;
@@ -48,7 +48,7 @@ int ll_gpio_init(void)
 {
 #if defined(AzureSphere_CA7)
 
-	GpioFd = GPIO_OpenAsOutput(MT3620_RDB_HEADER4_PIN14_GPIO, GPIO_OutputMode_PushPull, GPIO_Value_High);
+	GpioFd = GPIO_OpenAsOutput(ARDUCAM_CS, GPIO_OutputMode_PushPull, GPIO_Value_High);
 	if (GpioFd < 0) {
 		Log_Debug("ERROR: GPIO_OpenAsOutput: errno=%d (%s)\n", errno, strerror(errno));
 		return -1;
@@ -99,7 +99,7 @@ int ll_i2c_init(void)
 {
 #if defined(AzureSphere_CA7)
 
-    i2cFd = I2CMaster_Open(MT3620_RDB_HEADER2_ISU0_I2C);
+    i2cFd = I2CMaster_Open(ARDUCAM_I2C);
 	if (i2cFd < 0) {
 		Log_Debug("ERROR: I2CMaster_Open: errno=%d (%s)\r\n", errno, strerror(errno));
 		return -1;
@@ -199,7 +199,7 @@ int ll_spi_init(void)
     }
 
     config.csPolarity = SPI_ChipSelectPolarity_ActiveLow;
-    spiFd = SPIMaster_Open(MT3620_RDB_HEADER4_ISU1_SPI, MT3620_SPI_CS_A, &config);
+    spiFd = SPIMaster_Open(ARDUCAM_SPI, MT3620_SPI_CS_A, &config);
     if (spiFd < 0) {
         Log_Debug("ERROR: SPIMaster_Open: errno=%d (%s)\r\n", errno, strerror(errno));
         return -1;

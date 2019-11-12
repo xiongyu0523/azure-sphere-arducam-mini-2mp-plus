@@ -38,7 +38,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <TargetHardwareDirectory>.\Hardware\mt3620_rdb</TargetHardwareDirectory>
-    <TargetHardwareDefinition>mt3620_rdb.json</TargetHardwareDefinition>
+    <TargetHardwareDefinition>sample_hardware.json</TargetHardwareDefinition>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="arducam_mini_2mp_plus_driver\ArduCAM.c" />
