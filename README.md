@@ -29,7 +29,7 @@ This sample demonstrates capturing a JPEG picture using [ArduCAM mini 2MP PLUS](
     | SCK  | H4-7 | GPIO31_SCLK1_TXD1 |
     | MISO  | H4-5 | GPIO33_MISO1_RXD1_DATA1 |
     | MOSI  | H4-11 | GPIO32_MOSI1_RTS1_CLK1 |
-    | CS  | H1-10 | GPIO3
+    | CS  | H1-10 | GPIO3 |
   
 ### Build and deploy the application
 
