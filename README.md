@@ -17,19 +17,19 @@ This sample demonstrates capturing a JPEG picture using [ArduCAM mini 2MP PLUS](
 3. Open Azure Sphere Developer Command Prompt and issue the following command:
 
    ```
-   azsphere dev prep-debug
+   azsphere dev edv
    ```
 4. The demo is tested on RDB, connect SPI to ISU1 on Header 4 and I2C to ISU0 on Header 2. Detailed connections are:
     |  ArduCAM mini 2MP Plus | RDB  | MT3620 |
     |  ----  | ----  | ---- | 
     | SCL  | H2-7 | GPIO27_MOSI0_RTS0_CLK0 |
     | SDA  | H2-1 | GPIO28_MISO0_RXD0_DATA0 | 
-    | VCC  | H3-3 | 3V3
-    | GND  | H3-2 | GND
-    | SCK  | H4-7 | GPIO31_SCLK1_TXD1
-    | MISO  | H4-5 | GPIO33_MISO1_RXD1_DATA1
-    | MOSI  | H4-11 | GPIO32_MOSI1_RTS1_CLK1
-    | CS  | H4-14 | GPIO40_CSB2
+    | VCC  | H3-3 | 3V3 |
+    | GND  | H3-2 | GND |
+    | SCK  | H4-7 | GPIO31_SCLK1_TXD1 |
+    | MISO  | H4-5 | GPIO33_MISO1_RXD1_DATA1 |
+    | MOSI  | H4-11 | GPIO32_MOSI1_RTS1_CLK1 |
+    | CS  | H1-10 | GPIO3
   
 ### Build and deploy the application
 

@@ -44,7 +44,7 @@
     <ClCompile Include="arducam_mini_2mp_plus_driver\ArduCAM.c" />
     <ClCompile Include="arducam_mini_2mp_plus_driver\ll.c" />
     <ClCompile Include="arducam_mini_2mp_plus_driver\ov2640_regs.c" />
-    <ClCompile Include="delay_ms.c" />
+    <ClCompile Include="delay.c" />
     <ClCompile Include="main.c" />
     <UpToDateCheckInput Include="app_manifest.json" />
   </ItemGroup>

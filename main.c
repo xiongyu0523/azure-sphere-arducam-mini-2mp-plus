@@ -11,7 +11,7 @@
 #include <curl/easy.h>
 
 #include "ArduCAM.h"
-#include "delay_ms.h"
+#include "delay.h"
 
 //#define CFG_MODE_JPEG
 #define CFG_MODE_BITMAP

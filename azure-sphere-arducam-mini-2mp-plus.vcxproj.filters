@@ -31,7 +31,7 @@
     <ClCompile Include="arducam_mini_2mp_plus_driver\ov2640_regs.c">
       <Filter>Source Files\arducam_mini_2mp_plus_driver</Filter>
     </ClCompile>
-    <ClCompile Include="delay_ms.c">
+    <ClCompile Include="delay.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

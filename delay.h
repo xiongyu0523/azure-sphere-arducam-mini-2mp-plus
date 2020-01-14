@@ -1,5 +1,5 @@
-﻿#ifndef __DELAY_MS_H
-#define __DELAY_MS_H
+﻿#ifndef __DELAY_H
+#define __DELAY_H
 
 #include <stdint.h>
 
