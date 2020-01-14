@@ -41,9 +41,9 @@
     <TargetHardwareDefinition>sample_hardware.json</TargetHardwareDefinition>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="arducam_mini_2mp_plus_driver\ArduCAM.c" />
-    <ClCompile Include="arducam_mini_2mp_plus_driver\ll.c" />
-    <ClCompile Include="arducam_mini_2mp_plus_driver\ov2640_regs.c" />
+    <ClCompile Include="arducam_driver\ArduCAM.c" />
+    <ClCompile Include="arducam_driver\ll.c" />
+    <ClCompile Include="arducam_driver\ov2640_regs.c" />
     <ClCompile Include="delay.c" />
     <ClCompile Include="main.c" />
     <UpToDateCheckInput Include="app_manifest.json" />
@@ -54,7 +54,7 @@
     <ClCompile>
       <AdditionalOptions>-Werror=implicit-function-declaration %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">_POSIX_C_SOURCE;%(PreprocessorDefinitions);AzureSphere_CA7</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">$(SysRootIncludePath);%(AdditionalIncludeDirectories);$(TargetHardwareDirectory)\inc;.\arducam_mini_2mp_plus_driver;.;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">$(SysRootIncludePath);%(AdditionalIncludeDirectories);$(TargetHardwareDirectory)\inc;.\arducam_driver;.;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <LibraryDependencies>applibs;pthread;gcc_s;c;curl</LibraryDependencies>
