@@ -5,16 +5,21 @@
 
 #include <applibs/log.h>
 #include <time.h>
+#include <applibs/rtc.h>
 #include <signal.h>
 #include <applibs/networking.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
+#include <applibs/storage.h>
 
-#include "ArduCAM.h"
+#include "arducam_driver/ArduCAM.h"
 #include "delay.h"
 
-//#define CFG_MODE_JPEG
-#define CFG_MODE_BITMAP
+const char* storageURL = "https://<your-storage-account>.blob.core.windows.net";
+const char* pathFileName = "/<your-storage-blob-container-name>/img/";
+const char fileName[64];
+const char* SASToken = "<your-blob-container-SharedAccessString>";
+
 
 #if (defined(CFG_MODE_JPEG) && defined(CFG_MODE_BITMAP)) || (!defined(CFG_MODE_JPEG) && !defined(CFG_MODE_BITMAP))
 #error "define CFG_MODE_JPEG or CFG_MODE_BITMAP"
@@ -49,13 +54,39 @@ const uint8_t bmp_header[BMPIMAGEOFFSET] =
 };
 #endif
 
+// Generate a random GUID and return it in outputGUID
+void generateGUID(char* outputGUID) {
+	srand(clock());
+#define GUID_SIZE 40
+	char GUID[GUID_SIZE];
+	int t = 0;
+	char* szTemp = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+	char* szHex = "0123456789abcdef-";
+	int nLen = strlen(szTemp);
+
+	for (t = 0; t < nLen + 1; t++)
+	{
+		int r = rand() % 16;
+		char c = ' ';
+
+		switch (szTemp[t])
+		{
+		case 'x': { c = szHex[r]; } break;
+		case 'y': { c = szHex[r & 0x03 | 0x08]; } break;
+		case '-': { c = '-'; } break;
+		case '4': { c = '4'; } break;
+		}
+		GUID[t] = (t < nLen) ? c : 0x00;
+	}
+
+	// Move the GUID into the output string
+	strncpy(outputGUID, GUID, GUID_SIZE);
+}
+
 struct image_buffer {
 	uint8_t* p_data;
 	uint32_t size;
 };
-
-const char* FileURI = "https://<your-stroage-account>.blob.core.windows.net/img/test.jpg";
-const char* SASToken = "Create a Service SAS with Create and Write permission and paste Query String here";
 
 static void LogCurlError(const char* message, int curlErrCode)
 {
@@ -100,39 +131,62 @@ static void UploadFileToAzureBlob(uint8_t *p_data, uint32_t size)
 		goto exitLabel;
 	}
 
-	char* sasurl = calloc(strlen(FileURI) + strlen(SASToken) + sizeof('\0'), sizeof(char));
-	(void)strcat(strcat(sasurl, FileURI), SASToken);
+	// Generate a new GUID to use as the filename
+	generateGUID(fileName);
 
+	// Construct the url that includes the base url + file path  + file name + SAS Token
+	char* sasurl = calloc(strlen(storageURL) + strlen(pathFileName) + sizeof(fileName) + strlen(SASToken) + sizeof('\0'), sizeof(char));
+	(void)strcat(strcat(strcat(strcat(strcat(sasurl, storageURL), pathFileName), fileName),".jpg"),SASToken);
+
+	// Initialize the curl handle
 	if ((curlHandle = curl_easy_init()) == NULL) {
 		Log_Debug("curl_easy_init() failed\r\n");
 		goto cleanupLabel;
 	}
 
+	// Set the URL
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_URL, sasurl)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_URL", res);
 		goto cleanupLabel;
 	}
+	
+	// Set the default value: strict certificate OFF
+	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0L)) != CURLE_OK) {
+		LogCurlError("curl_easy_setopt CURLOPT_URL", res);
+		goto cleanupLabel;
+	}
+	
+	// Construct the Authorization header and add it to the header list
+	char* headerString = calloc(strlen("Authorization=") + strlen(SASToken) + sizeof('\0'), sizeof(char));
+	(void)strcat(strcat(headerString, "Authorization="), SASToken);
+	list = curl_slist_append(list, headerString);
 
+	// Set the blob type header
 	list = curl_slist_append(list, "x-ms-blob-type:BlockBlob");
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, list)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_HTTPHEADER", res);
 		goto cleanupLabel;
 	}
 
+	// Set the upload option
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_UPLOAD, 1)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_UPLOAD", res);
 		goto cleanupLabel;
 	}
+
+	// Pass the size of the file
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_INFILESIZE, size)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_INFILESIZE", res);
 		goto cleanupLabel;
 	}
 
+	// Set the read callback
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_READFUNCTION, read_callback)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_READFUNCTION", res);
 		goto cleanupLabel;
 	}
 
+	// Pass a pointer to the data to upload
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_READDATA, &userdata)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_READFUNCTION", res);
 		goto cleanupLabel;
@@ -150,9 +204,14 @@ static void UploadFileToAzureBlob(uint8_t *p_data, uint32_t size)
 	}
 
 cleanupLabel:
+
+	// Free up memory we allocated
 	free(sasurl);
+	free(headerString);
+
 	// Clean up sample's cURL resources.
 	curl_easy_cleanup(curlHandle);
+	
 	// Clean up cURL library's resources.
 	curl_global_cleanup();
 
@@ -183,6 +242,8 @@ int main(int argc, char* argv[])
 #endif
 	arducam_InitCAM();
 #if defined(CFG_MODE_JPEG)
+	
+//	arducam_OV2640_set_JPEG_size(OV2640_1600x1200);
 	arducam_OV2640_set_JPEG_size(OV2640_320x240);
 #endif
 	delay_ms(1000);
@@ -252,13 +313,13 @@ int main(int argc, char* argv[])
 
 	bool isNetworkingReady = false;
 	while ((Networking_IsNetworkingReady(&isNetworkingReady) < 0) || !isNetworkingReady) {
-		Log_Debug("\nNot doing download because network is not up, try again\r\n");
+		Log_Debug("\nNot doing upload because network is not up, try again\r\n");
 	}
 
+	// Call the routine to send the file to our storage account
 	UploadFileToAzureBlob(p_file, file_size);
 
 	free(p_file);
-
 	Log_Debug("App Exit\r\n");
 
 	return 0;
