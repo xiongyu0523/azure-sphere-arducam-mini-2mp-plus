@@ -19,8 +19,8 @@
     },
     "Imports" : [ {"Path": "avnet_mt3620_sk.json"} ],
     "Peripherals": [
-        {"Name": "ARDUCAM_CS", "Type": "Gpio", "Mapping": "AVNET_MT3620_SK_GPIO16", "Comment": "Connect CS to SK Click1 Pin2(GPIO16)"},
-        {"Name": "ARDUCAM_I2C", "Type": "I2cMaster", "Mapping": "AVNET_MT3620_SK_ISU2_I2C", "Comment": "Connect to OLED Display connector Pin 4(SDA) and Pin3(SCL)"},
-        {"Name": "ARDUCAM_SPI", "Type": "SpiMaster", "Mapping": "AVNET_MT3620_SK_ISU0_SPI", "Comment": "Connect to UART/BLE Connector Pin3(MISO), Pin2(SCLK) and Pin4(MOSI)"}
+        {"Name": "ARDUCAM_CS", "Type": "Gpio", "Mapping": "AVNET_MT3620_SK_GPIO0", "Comment": "Connect to Click 1: Header 2: Pin 1"},
+        {"Name": "ARDUCAM_I2C", "Type": "I2cMaster", "Mapping": "AVNET_MT3620_SK_ISU2_I2C", "Comment": "Connect to Click 1: Header 2 Pin 6(SDA) and Pin5(SCL)"},
+        {"Name": "ARDUCAM_SPI", "Type": "SpiMaster", "Mapping": "AVNET_MT3620_SK_ISU1_SPI", "Comment": "Connect to Click 1: Header 1: Pin4(SCK), Pin5(MOSO) and Pin6(MOSI)"}
     ]
 }

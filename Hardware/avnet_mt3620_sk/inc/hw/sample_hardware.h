@@ -12,12 +12,12 @@
 #pragma once
 #include "avnet_mt3620_sk.h"
 
-// Connect CS to SK Click1 Pin2(GPIO16)
-#define ARDUCAM_CS AVNET_MT3620_SK_GPIO16
+// Connect to Click 1: Header 2: Pin 1
+#define ARDUCAM_CS AVNET_MT3620_SK_GPIO0
 
-// Connect to OLED Display connector Pin 4(SDA) and Pin3(SCL)
+// Connect to Click 1: Header 2 Pin 6(SDA) and Pin5(SCL)
 #define ARDUCAM_I2C AVNET_MT3620_SK_ISU2_I2C
 
-// Connect to UART/BLE Connector Pin3(MISO), Pin2(SCLK) and Pin4(MOSI)
-#define ARDUCAM_SPI AVNET_MT3620_SK_ISU0_SPI
+// Connect to Click 1: Header 1: Pin4(SCK), Pin5(MOSO) and Pin6(MOSI)
+#define ARDUCAM_SPI AVNET_MT3620_SK_ISU1_SPI
 
