@@ -10,7 +10,7 @@
 #include <applibs/i2c.h>
 #include <applibs/spi.h>
 #include <applibs/gpio.h>
-#include "hw/sample_appliance.h"
+#include <hw/sample_hardware.h>
 
 static int GpioFd;
 static int i2cFd;
