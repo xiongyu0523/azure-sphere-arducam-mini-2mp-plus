@@ -13,7 +13,7 @@ add_executable(${PROJECT_NAME}
                 arducam_driver/ArduCAM.c 
                 arducam_driver/ll.c 
                 arducam_driver/ov2640_regs.c 
-                delay.c)
+                delay.c)  
 target_include_directories(${PROJECT_NAME} PUBLIC ${AZURE_SPHERE_API_SET_DIR}/usr/include/azureiot ${AZURE_SPHERE_API_SET_DIR}/usr/include/azure_prov_client)
 
 # Set the defines for the build
@@ -23,8 +23,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC CFG_MODE_JPEG)
 
 target_link_libraries(${PROJECT_NAME} azureiot applibs pthread gcc_s c curl)
 
-azsphere_target_hardware_definition(${PROJECT_NAME} TARGET_DIRECTORY "Hardware/avnet_mt3620_sk_rev2" TARGET_DEFINITION "sample_hardware.json")
-
+azsphere_target_hardware_definition(${PROJECT_NAME} TARGET_DIRECTORY "../../HardwareDefinitions/avnet_mt3620_sk" TARGET_DEFINITION "sample_appliance.json")
+ 
 #find_program(POWERSHELL powershell.exe)
 
 #if (POWERSHELL)
