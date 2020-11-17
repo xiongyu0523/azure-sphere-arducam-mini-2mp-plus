@@ -18,7 +18,7 @@
 const char* storageURL = "https://<your-storage-account>.blob.core.windows.net";
 const char* pathFileName = "/<your-storage-blob-container-name>/img/";
 const char fileName[64];
-const char* SASToken = "<your-blob-container-SharedAccessString>";
+const char* SASToken = "<your-blob-container-SharedAccessSignature>";
 
 
 #if (defined(CFG_MODE_JPEG) && defined(CFG_MODE_BITMAP)) || (!defined(CFG_MODE_JPEG) && !defined(CFG_MODE_BITMAP))
