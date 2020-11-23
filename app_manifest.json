@@ -5,10 +5,11 @@
   "EntryPoint": "/bin/app",
   "CmdArgs": [],
   "Capabilities": {
-    "AllowedConnections": [ "<your-stroage-account>.blob.core.windows.net" ],
+    "AllowedConnections": [ "bwstorageaccount.blob.core.windows.net" ],
     "Gpio": [ "$ARDUCAM_CS" ],
     "I2cMaster": [ "$ARDUCAM_I2C" ],
     "SpiMaster": [ "$ARDUCAM_SPI" ]
+
   },
   "ApplicationType":"Default"
 }

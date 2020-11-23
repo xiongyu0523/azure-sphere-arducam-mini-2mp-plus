@@ -5,8 +5,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "applibs_versions.h"
-
+#include "../applibs_versions.h"
 #include <applibs/log.h>
 #include <applibs/i2c.h>
 #include <applibs/spi.h>

@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "delay.h"
+#include "../delay.h"
 #include "ll.h"
 #include "ArduCAM.h"
 #include "ov2640_regs.h"
