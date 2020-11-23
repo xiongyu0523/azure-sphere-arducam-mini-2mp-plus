@@ -6,14 +6,14 @@ This sample demonstrates capturing a JPEG picture using [ArduCAM mini 2MP PLUS](
 
 1. To run this demo you need have a [storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-quickstart-create-account?tabs=azure-portal) and create a [blob container](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal)
 2. Download [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer/) and login with your Azure AD
-3. In Storage Explorer, navigate to your container icon and right click to **Get Shared Access Signature**, create a Ad-hoc Service SAS with at least *Create* and *Write* permission. Copy **Query String**
+3. In Storage Explorer, navigate to your container icon and right click to **Get Shared Access Signature**, create a Ad-hoc Service SAS with at least *Create* and *Write* permission. Copy **Query String** to code
 
 ## To build and run the sample
 
 ### Prep your device
 
 1. Ensure that your Azure Sphere device is connected to your PC, and your PC is connected to the internet.
-2. Even if you've performed this set up previously, ensure that you have Azure Sphere SDK version 19.09 or above. In an Azure Sphere Developer Command Prompt, run **azsphere show-version** to check. Download and install the [latest SDK](https://aka.ms/AzureSphereSDKDownload) as needed.
+2. Even if you've performed this set up previously, ensure that you have Azure Sphere SDK version 20.04 or above. In an Azure Sphere Developer Command Prompt, run **azsphere show-version** to check. Download and install the [latest SDK](https://aka.ms/AzureSphereSDKDownload) as needed.
 3. Open Azure Sphere Developer Command Prompt and issue the following command:
 
    ```
@@ -36,7 +36,7 @@ This sample demonstrates capturing a JPEG picture using [ArduCAM mini 2MP PLUS](
 
 1. Start Visual Studio.
 2. Open the CMakeLists.txt file
-3. In main.c file, replace storageURL string with your **stroage account name** SASToken string with the **Query String** your created, and **pathFileName** with your blob container name.
+3. In main.c file, replace storageURL string with your **stroage account name**, SASToken string with the **Query String** your created, and **pathFileName** with your blob container name.
 4. In app_manifest.json file, fill your own **stroage account name** in AllowedConnections capability. 
 5. Press **F5** to build and debug the application
 6. In **Device Output** window, you will observe below logs:

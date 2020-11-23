@@ -16,16 +16,18 @@
 #include "delay.h"
 
 const char* storageURL = "https://<your-storage-account>.blob.core.windows.net";
-const char* pathFileName = "/<your-storage-blob-container-name>/img/";
-const char fileName[64];
-const char* SASToken = "<your-blob-container-SharedAccessSignature>";
+const char* pathFileName = "/<your-container>/";
+char fileName[64];
+const char* SASToken = "<your-sas>";
 
 
 #if (defined(CFG_MODE_JPEG) && defined(CFG_MODE_BITMAP)) || (!defined(CFG_MODE_JPEG) && !defined(CFG_MODE_BITMAP))
 #error "define CFG_MODE_JPEG or CFG_MODE_BITMAP"
 #endif
 
-#if defined(CFG_MODE_BITMAP)
+#if defined(CFG_MODE_JPEG)
+#define FILE_EXTENSION ".jpg"
+#elif defined(CFG_MODE_BITMAP)
 #define BMPIMAGEOFFSET 66
 const uint8_t bmp_header[BMPIMAGEOFFSET] =
 {
@@ -52,17 +54,18 @@ const uint8_t bmp_header[BMPIMAGEOFFSET] =
 	0xE0, 0x07, 0x00, 0x00,     // Green mask
 	0x1F, 0x00, 0x00, 0x00      // Blue mask
 };
+#define FILE_EXTENSION ".bmp"
 #endif
 
 // Generate a random GUID and return it in outputGUID
 void generateGUID(char* outputGUID) {
-	srand(clock());
+	srand((unsigned)clock());
 #define GUID_SIZE 40
 	char GUID[GUID_SIZE];
 	int t = 0;
 	char* szTemp = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
 	char* szHex = "0123456789abcdef-";
-	int nLen = strlen(szTemp);
+	size_t nLen = strlen(szTemp);
 
 	for (t = 0; t < nLen + 1; t++)
 	{
@@ -125,6 +128,7 @@ static void UploadFileToAzureBlob(uint8_t *p_data, uint32_t size)
 	CURL* curlHandle = NULL;
 	CURLcode res = CURLE_OK;
 	struct curl_slist* list = NULL;
+	char* rootca = NULL;
 
 	if ((res = curl_global_init(CURL_GLOBAL_ALL)) != CURLE_OK) {
 		LogCurlError("curl_global_init", res);
@@ -136,7 +140,8 @@ static void UploadFileToAzureBlob(uint8_t *p_data, uint32_t size)
 
 	// Construct the url that includes the base url + file path  + file name + SAS Token
 	char* sasurl = calloc(strlen(storageURL) + strlen(pathFileName) + sizeof(fileName) + strlen(SASToken) + sizeof('\0'), sizeof(char));
-	(void)strcat(strcat(strcat(strcat(strcat(sasurl, storageURL), pathFileName), fileName),".jpg"),SASToken);
+	(void)strcat(strcat(strcat(strcat(strcat(sasurl, storageURL), pathFileName), fileName), FILE_EXTENSION), SASToken);
+
 
 	// Initialize the curl handle
 	if ((curlHandle = curl_easy_init()) == NULL) {
@@ -150,21 +155,28 @@ static void UploadFileToAzureBlob(uint8_t *p_data, uint32_t size)
 		goto cleanupLabel;
 	}
 	
-	// Set the default value: strict certificate OFF
-	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0L)) != CURLE_OK) {
+	// Set the default value: strict certificate ON
+	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 1L)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_URL", res);
 		goto cleanupLabel;
 	}
 	
-	// Construct the Authorization header and add it to the header list
-	char* headerString = calloc(strlen("Authorization=") + strlen(SASToken) + sizeof('\0'), sizeof(char));
-	(void)strcat(strcat(headerString, "Authorization="), SASToken);
-	list = curl_slist_append(list, headerString);
-
 	// Set the blob type header
 	list = curl_slist_append(list, "x-ms-blob-type:BlockBlob");
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, list)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_HTTPHEADER", res);
+		goto cleanupLabel;
+	}
+
+	rootca = Storage_GetAbsolutePathInImagePackage("certs/BaltimoreCyberTrustRoot.pem");
+	if (rootca == NULL) {
+		Log_Debug("The root ca path could not be resolved: errno=%d (%s)\r\n", errno, strerror(errno));
+		goto cleanupLabel;
+	}
+
+	// Set the root ca option
+	if ((res = curl_easy_setopt(curlHandle, CURLOPT_CAINFO, rootca)) != CURLE_OK) {
+		LogCurlError("curl_easy_setopt CURLOPT_CAINFO", res);
 		goto cleanupLabel;
 	}
 
@@ -207,7 +219,7 @@ cleanupLabel:
 
 	// Free up memory we allocated
 	free(sasurl);
-	free(headerString);
+	free(rootca);
 
 	// Clean up sample's cURL resources.
 	curl_easy_cleanup(curlHandle);
